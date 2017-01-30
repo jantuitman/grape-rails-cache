@@ -41,6 +41,10 @@ module Grape
             2.hours
           end
 
+          def default_race_condition_ttl
+            5.seconds
+          end
+
           def cache(opts = {}, &block)
             # HTTP Cache
             cache_key = opts[:key]
@@ -54,11 +58,12 @@ module Grape
             end
 
             # Try to fetch from server side cache
+            race_condition_ttl = (opts[:race_condition_ttl] || default_race_condition_ttl)
             cache_store_expire_time = (opts[:cache_store_expires_in] || opts[:expires_in] || default_expire_time).to_i
             if cache_store_expire_time <= 0
               block.call.to_json
             else
-              ::Rails.cache.fetch(cache_key, raw: true, expires_in: cache_store_expire_time) do
+              ::Rails.cache.fetch(cache_key, raw: true, expires_in: cache_store_expire_time, race_condition_ttl: default_race_condition_ttl) do
                 block.call.to_json
               end
             end
